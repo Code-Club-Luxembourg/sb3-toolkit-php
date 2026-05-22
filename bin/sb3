@@ -1,0 +1,33 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use CodeClubLuxembourg\Sb3Toolkit\Cli\CliFactory;
+
+$autoloads = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+];
+
+foreach ($autoloads as $autoload) {
+    if (is_file($autoload)) {
+        require $autoload;
+        break;
+    }
+}
+
+if (!class_exists(\Symfony\Component\Console\Application::class)) {
+    fwrite(STDERR, <<<'MSG'
+        The sb3 CLI requires symfony/console, an optional dependency of this library.
+        Install it in your project to enable the bin/sb3 commands:
+
+            composer require symfony/console:^7.0
+
+        (Downloading projects from Scratch additionally needs symfony/http-client.)
+
+        MSG);
+    exit(1);
+}
+
+CliFactory::create()->run();

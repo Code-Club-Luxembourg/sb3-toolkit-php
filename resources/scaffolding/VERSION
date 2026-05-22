@@ -1,0 +1,4 @@
+@turbowarp/packager scaffolding runtime
+source-version: 3.12.0
+bundle: scaffolding-min.js
+license: MPL-2.0 (see scaffolding-min.js.LICENSE.txt)

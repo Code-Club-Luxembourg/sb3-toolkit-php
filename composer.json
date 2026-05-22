@@ -1,0 +1,70 @@
+{
+    "name": "code-club-luxembourg/sb3-toolkit",
+    "description": "PHP toolkit for working with Scratch .sb3 projects: builder API, validator, and an optional CLI.",
+    "type": "library",
+    "keywords": [
+        "scratch",
+        "sb3",
+        "sb3-toolkit",
+        "validator",
+        "builder",
+        "education"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michel Weimerskirch",
+            "email": "michel@weimerskirch.net"
+        }
+    ],
+    "require": {
+        "php": ">=8.3",
+        "ext-hash": "*",
+        "ext-json": "*",
+        "ext-zip": "*"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpunit/phpunit": "^11.0",
+        "psr/log": "^3.0",
+        "rector/rector": "^2.0",
+        "symfony/console": "^7.0",
+        "symfony/http-client": "^7.0",
+        "symfony/process": "^7.0"
+    },
+    "suggest": {
+        "symfony/console": "^7.0 to use the bin/sb3 CLI commands (merge, grid, pack, validate, download, …)",
+        "symfony/http-client": "^7.0 to download projects and studios from the Scratch website via the Studio API",
+        "psr/log": "^3.0 to receive PSR-3 log messages during studio downloads"
+    },
+    "autoload": {
+        "psr-4": {
+            "CodeClubLuxembourg\\Sb3Toolkit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CodeClubLuxembourg\\Sb3Toolkit\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/sb3"
+    ],
+    "scripts": {
+        "test": "phpunit",
+        "lint": "php-cs-fixer fix --dry-run --diff",
+        "lint:fix": "php-cs-fixer fix",
+        "rector": "rector process --dry-run",
+        "rector:fix": "rector process",
+        "generate-blocks": "php bin/generate-blocks.php"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {}
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

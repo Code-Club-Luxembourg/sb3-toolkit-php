@@ -1,0 +1,12 @@
+/vendor/
+.php-cs-fixer.cache
+.phpunit.result.cache
+/.phpunit.cache/
+composer.lock
+*_downloads/
+
+# Local SFTP credentials for the dancefloor example
+/examples/.env
+
+# JetBrains IDE
+/.idea/
