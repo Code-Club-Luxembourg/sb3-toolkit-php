@@ -15,6 +15,14 @@ final class ScratchAssetIndex
     private array $byMd5ext = [];
 
     /**
+     * @param array<string, string> $byMd5ext initial `md5ext => binary` entries
+     */
+    public function __construct(array $byMd5ext = [])
+    {
+        $this->byMd5ext = $byMd5ext;
+    }
+
+    /**
      * Add an asset binary if the `md5ext` key is not already present.
      */
     public function add(string $md5ext, string $data): void

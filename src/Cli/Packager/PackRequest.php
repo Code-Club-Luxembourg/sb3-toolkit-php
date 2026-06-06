@@ -19,5 +19,8 @@ final class PackRequest
         public readonly ?int $countdownSeconds = null,
         public readonly ?string $checksumFile = null,
         public readonly ?string $checksumUrl = null,
+        // When set, the project bytes are used directly and $projectPath is
+        // ignored — lets callers package an in-memory project without a file.
+        public readonly ?string $projectBytes = null,
     ) {}
 }

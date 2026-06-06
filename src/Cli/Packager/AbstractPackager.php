@@ -16,9 +16,12 @@ abstract class AbstractPackager implements PackagerInterface
 {
     public function pack(PackRequest $request): void
     {
-        $projectData = file_get_contents($request->projectPath);
-        if ($projectData === false) {
-            throw new RuntimeException(\sprintf('Failed to read project: %s', $request->projectPath));
+        $projectData = $request->projectBytes;
+        if ($projectData === null) {
+            $projectData = file_get_contents($request->projectPath);
+            if ($projectData === false) {
+                throw new RuntimeException(\sprintf('Failed to read project: %s', $request->projectPath));
+            }
         }
 
         $this->emit($request, $projectData, $this->buildCustomJs($request, $projectData));

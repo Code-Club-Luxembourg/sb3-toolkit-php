@@ -119,6 +119,36 @@ foreach ($result->errors as $error) {
 See [docs/validator.md](docs/validator.md) for the full API, all error codes,
 the structured `ValidationPath`, and how to write a custom rule.
 
+### Work with project parts in memory
+
+When you already hold a project's parts — a decoded `project.json` array and its
+assets keyed by `md5ext` — build a `ScratchProject` directly, with no `.sb3`
+file on disk. Serialize back to bytes with `toSb3Bytes()`, and package straight
+from those bytes via `PackRequest::$projectBytes`:
+
+```php
+use CodeClubLuxembourg\Sb3Toolkit\Cli\Packager\HtmlPackager;
+use CodeClubLuxembourg\Sb3Toolkit\Cli\Packager\PackRequest;
+use CodeClubLuxembourg\Sb3Toolkit\Scratch\ScratchProject;
+
+// $projectJson: array (decoded project.json); $assetsByMd5ext: [md5ext => bytes]
+$project = ScratchProject::fromParts($projectJson, $assetsByMd5ext);
+
+$bytes = $project->toSb3Bytes();
+(new HtmlPackager())->pack(new PackRequest(
+    projectPath: '',          // ignored when projectBytes is given
+    outputPath: 'player.html',
+    stageWidth: 480,
+    stageHeight: 360,
+    projectBytes: $bytes,
+));
+```
+
+This avoids round-tripping through temporary `.sb3` files when merging or
+packaging projects loaded from a database or other store. `mergeSprites()` and
+`gridProjects()` already operate purely in memory, so a whole merge-and-package
+pipeline can run without touching disk for the inputs.
+
 ### Manipulate or download projects from the CLI
 
 The CLI is optional — install `symfony/console` (and `symfony/http-client` for

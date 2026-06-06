@@ -94,6 +94,19 @@ final class ScratchProject
     }
 
     /**
+     * Build a project from already-parsed parts: a decoded `project.json` array
+     * and a `md5ext => binary` asset map. No filesystem or zip involved — for
+     * callers that already hold the project parts (e.g. loaded from a database).
+     *
+     * @param array<string, mixed>  $data           decoded `project.json`
+     * @param array<string, string> $assetsByMd5ext  `md5ext => asset bytes`
+     */
+    public static function fromParts(array $data, array $assetsByMd5ext): self
+    {
+        return new self($data, new ScratchAssetIndex($assetsByMd5ext));
+    }
+
+    /**
      * Create a new empty project containing only a blank stage.
      *
      * @param array<string, mixed> $meta override values for `project.json` meta
@@ -540,6 +553,35 @@ final class ScratchProject
         }
 
         $zip->close();
+    }
+
+    /**
+     * Serialize the project and assets into `.sb3` bytes in memory.
+     *
+     * PHP's ZipArchive only writes to a path, so this goes through a temporary
+     * file. For callers that build a project in memory and need the bytes
+     * (e.g. to base64-inline into a packaged HTML page) without managing a file.
+     *
+     * @throws RuntimeException if the archive cannot be created or read back
+     */
+    public function toSb3Bytes(): string
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'sb3');
+        if ($tmp === false) {
+            throw new RuntimeException('Failed to allocate a temporary file');
+        }
+
+        try {
+            $this->saveToSb3File($tmp);
+            $bytes = file_get_contents($tmp);
+            if ($bytes === false) {
+                throw new RuntimeException('Failed to read serialized .sb3 bytes');
+            }
+
+            return $bytes;
+        } finally {
+            @unlink($tmp);
+        }
     }
 
     /**
