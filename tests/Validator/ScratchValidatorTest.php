@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CodeClubLuxembourg\Sb3Toolkit\Tests\Validator;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use CodeClubLuxembourg\Sb3Toolkit\Scratch\ScratchAssetIndex;
 use CodeClubLuxembourg\Sb3Toolkit\Scratch\ScratchProject;
@@ -427,6 +428,31 @@ final class ScratchValidatorTest extends TestCase
         $result = ScratchValidator::validate(Fixtures::makeProject([$stage]));
         self::assertFalse($result->isValid);
         self::assertTrue($this->hasCodeAtPath($result, ErrorCode::WRONG_TYPE, 'rate'));
+    }
+
+    /**
+     * @return iterable<string, array{string, mixed}>
+     */
+    public static function invalidSoundNumbers(): iterable
+    {
+        yield 'null sampleCount' => ['sampleCount', null];
+        yield 'fractional sampleCount' => ['sampleCount', 12.5];
+        yield 'NaN sampleCount' => ['sampleCount', NAN];
+        yield 'fractional rate' => ['rate', 22_050.5];
+    }
+
+    #[DataProvider('invalidSoundNumbers')]
+    public function testSoundRateAndSampleCountMustBeIntegers(string $field, mixed $value): void
+    {
+        $sound = Fixtures::sound('s1');
+        $sound[$field] = $value;
+        $stage = Fixtures::stage(null, [$sound]);
+        $result = ScratchValidator::validate(Fixtures::makeProject([$stage]));
+        self::assertFalse($result->isValid);
+        self::assertTrue(
+            $this->hasCodeAtPath($result, ErrorCode::WRONG_TYPE, $field)
+            || $this->hasCodeAtPath($result, ErrorCode::MISSING_FIELD, $field),
+        );
     }
 
     /**

@@ -18,6 +18,9 @@ use CodeClubLuxembourg\Sb3Toolkit\Scratch\ScratchAssetIndex;
  */
 abstract class Scriptable
 {
+    /** WAV format tags whose sample count is `data` length / block align: PCM, IEEE float, extensible. */
+    private const UNCOMPRESSED_WAV_FORMATS = [0x0001, 0x0003, 0xFFFE];
+
     /**
      * @var array<string, mixed>
      */
@@ -167,6 +170,10 @@ abstract class Scriptable
      * `$dataFormat` is `wav` and the arguments are left null. For other
      * formats supply the values explicitly (defaults: 44100 Hz, 0 samples —
      * the latter is a safe placeholder when the count isn't known).
+     * A compressed WAV (e.g. IMA ADPCM) without a `fact` chunk has no
+     * derivable sample count; pass `$sampleCount` for it.
+     *
+     * @throws \InvalidArgumentException if the WAV sample count can't be determined
      */
     public function addSound(
         string $name,
@@ -183,6 +190,16 @@ abstract class Scriptable
             $parsed = self::parseWavHeader($data);
             $rate ??= $parsed['rate'] ?? null;
             $sampleCount ??= $parsed['sampleCount'] ?? null;
+            $formatTag = $parsed['formatTag'] ?? null;
+            if ($sampleCount === null && $formatTag !== null && !\in_array($formatTag, self::UNCOMPRESSED_WAV_FORMATS, true)) {
+                // Compressed (e.g. IMA ADPCM) without a `fact` chunk: the sample count
+                // can't be derived from the byte length, so make the caller supply it.
+                throw new \InvalidArgumentException(\sprintf(
+                    'Cannot determine the sample count of WAV sound "%s" (format tag 0x%x, no fact chunk); pass $sampleCount explicitly',
+                    $name,
+                    $formatTag,
+                ));
+            }
         }
 
         $this->target['sounds'][] = [
@@ -247,7 +264,7 @@ abstract class Scriptable
     }
 
     /**
-     * @return array{rate?: int, sampleCount?: int}|null
+     * @return array{rate?: int, sampleCount?: int, formatTag?: int}|null
      */
     private static function parseWavHeader(string $data): ?array
     {
@@ -258,10 +275,12 @@ abstract class Scriptable
             return null;
         }
 
-        // Walk chunks looking for `fmt ` (sample rate, bits/sample) and `data` (length).
+        // Walk chunks looking for `fmt ` (format, sample rate, frame size), `fact`
+        // (sample count of compressed formats) and `data` (length).
+        $formatTag = null;
         $rate = null;
-        $bitsPerSample = null;
-        $numChannels = null;
+        $blockAlign = null;
+        $factSampleCount = null;
         $dataBytes = null;
         $cursor = 12;
         $length = \strlen($data);
@@ -269,13 +288,15 @@ abstract class Scriptable
             $chunkId = substr($data, $cursor, 4);
             $chunkSize = unpack('V', substr($data, $cursor + 4, 4))[1] ?? 0;
             $payload = substr($data, $cursor + 8, $chunkSize);
-            if ($chunkId === 'fmt ') {
-                $numChannels = unpack('v', substr($payload, 2, 2))[1] ?? null;
-                $rate = unpack('V', substr($payload, 4, 4))[1] ?? null;
-                $bitsPerSample = unpack('v', substr($payload, 14, 2))[1] ?? null;
+            if ($chunkId === 'fmt ' && \strlen($payload) >= 16) {
+                $fmt = unpack('vformatTag/vchannels/Vrate/VbyteRate/vblockAlign', $payload);
+                $formatTag = $fmt['formatTag'];
+                $rate = $fmt['rate'];
+                $blockAlign = $fmt['blockAlign'];
+            } elseif ($chunkId === 'fact' && \strlen($payload) >= 4) {
+                $factSampleCount = unpack('V', $payload)[1];
             } elseif ($chunkId === 'data') {
                 $dataBytes = $chunkSize;
-                break;
             }
             $cursor += 8 + $chunkSize + ($chunkSize % 2);
         }
@@ -284,9 +305,15 @@ abstract class Scriptable
         if (\is_int($rate) && $rate > 0) {
             $out['rate'] = $rate;
         }
-        if (\is_int($dataBytes) && \is_int($numChannels) && $numChannels > 0
-            && \is_int($bitsPerSample) && $bitsPerSample > 0) {
-            $out['sampleCount'] = intdiv($dataBytes, $numChannels * intdiv($bitsPerSample, 8));
+        if (\is_int($factSampleCount)) {
+            $out['sampleCount'] = $factSampleCount;
+        } elseif (\is_int($dataBytes) && \in_array($formatTag, self::UNCOMPRESSED_WAV_FORMATS, true)) {
+            if (\is_int($blockAlign) && $blockAlign > 0) {
+                $out['sampleCount'] = intdiv($dataBytes, $blockAlign);
+            }
+        }
+        if (\is_int($formatTag)) {
+            $out['formatTag'] = $formatTag;
         }
 
         return $out === [] ? null : $out;

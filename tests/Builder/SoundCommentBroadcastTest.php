@@ -45,6 +45,29 @@ final class SoundCommentBroadcastTest extends TestCase
         self::assertSame(4, $sound['sampleCount']);
     }
 
+    public function testAddSoundTakesCompressedWavSampleCountFromFactChunk(): void
+    {
+        $sprite = ScratchProject::create()->addSprite('Cat');
+        $sprite->addSound('laugh', self::adpcmWav(1000), 'wav');
+
+        $sound = $sprite->data()['sounds'][0];
+        self::assertSame(22_050, $sound['rate']);
+        self::assertSame(1000, $sound['sampleCount']);
+    }
+
+    public function testAddSoundRefusesToGuessCompressedWavSampleCountWithoutFactChunk(): void
+    {
+        $sprite = ScratchProject::create()->addSprite('Cat');
+        $sprite->addSound('laugh', self::adpcmWav(), 'wav', sampleCount: 1017);
+        $sound = $sprite->data()['sounds'][0];
+        self::assertSame(22_050, $sound['rate']);
+        self::assertSame(1017, $sound['sampleCount']);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('pass $sampleCount explicitly');
+        $sprite->addSound('laugh', self::adpcmWav(), 'wav');
+    }
+
     public function testStageCanAddSounds(): void
     {
         $project = ScratchProject::create();
@@ -126,5 +149,20 @@ final class SoundCommentBroadcastTest extends TestCase
         self::assertNotNull($found);
         self::assertSame($ref->id, $found->id);
         self::assertNull($project->findBroadcast('unknown'));
+    }
+
+    /**
+     * IMA ADPCM WAV header (format tag 0x11, mono, 22050 Hz, 4-bit) + one 512-byte block.
+     */
+    private static function adpcmWav(?int $factSampleCount = null): string
+    {
+        $body = 'fmt ' . pack('V', 20) . pack('v', 0x11) . pack('v', 1) . pack('V', 22_050)
+            . pack('V', 11_100) . pack('v', 512) . pack('v', 4) . pack('v', 2) . pack('v', 1017);
+        if ($factSampleCount !== null) {
+            $body .= 'fact' . pack('V', 4) . pack('V', $factSampleCount);
+        }
+        $body .= 'data' . pack('V', 512) . str_repeat("\x00", 512);
+
+        return 'RIFF' . pack('V', 4 + \strlen($body)) . 'WAVE' . $body;
     }
 }

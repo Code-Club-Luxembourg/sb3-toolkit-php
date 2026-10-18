@@ -183,7 +183,7 @@ final class StructureRule
                 self::VALID_SOUND_FORMATS,
                 ['rate', 'sampleCount'],
                 $errors,
-                requireNonNegativeNumbers: true,
+                requireNonNegativeIntegers: true,
             );
         }
     }
@@ -201,7 +201,7 @@ final class StructureRule
         array $validFormats,
         array $numberFields,
         array &$errors,
-        bool $requireNonNegativeNumbers = false,
+        bool $requireNonNegativeIntegers = false,
     ): void {
         if (!\is_array($entry)) {
             $errors[] = self::error(ErrorCode::WRONG_TYPE, $path, $targetIndex, "{$kind} must be an object");
@@ -229,8 +229,8 @@ final class StructureRule
             $value = $entry[$field] ?? null;
             if (!self::isNumber($value)) {
                 $errors[] = self::error(ErrorCode::MISSING_FIELD, "{$path}.{$field}", $targetIndex, "{$kind} {$field} must be a number");
-            } elseif ($requireNonNegativeNumbers && $value < 0) {
-                $errors[] = self::error(ErrorCode::WRONG_TYPE, "{$path}.{$field}", $targetIndex, "{$kind} {$field} must be non-negative");
+            } elseif ($requireNonNegativeIntegers && !(\is_int($value) && $value >= 0)) {
+                $errors[] = self::error(ErrorCode::WRONG_TYPE, "{$path}.{$field}", $targetIndex, "{$kind} {$field} must be a non-negative integer");
             }
         }
     }
