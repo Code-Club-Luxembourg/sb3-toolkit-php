@@ -38,7 +38,7 @@ final class FindScriptsFilterTest extends TestCase
     public function testFilterByOpcodeList(): void
     {
         $sprite = $this->makeMixedSprite();
-        $scripts = $sprite->findScripts(['event_whenflagclicked', 'event_whenspriteclicked']);
+        $scripts = $sprite->findScripts(['event_whenflagclicked', 'event_whenthisspriteclicked']);
         self::assertCount(2, $scripts);
     }
 

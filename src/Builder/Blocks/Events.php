@@ -34,7 +34,7 @@ final class Events
 
     public static function whenSpriteClicked(): Block
     {
-        return Block::make('event_whenspriteclicked');
+        return Block::make('event_whenthisspriteclicked');
     }
 
     public static function whenBroadcastReceived(string $broadcastOption): Block

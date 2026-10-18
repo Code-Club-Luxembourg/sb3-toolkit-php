@@ -17,7 +17,9 @@ use CodeClubLuxembourg\Sb3Toolkit\Builder\Field\Key;
 use CodeClubLuxembourg\Sb3Toolkit\Builder\Field\StopOption;
 use CodeClubLuxembourg\Sb3Toolkit\Builder\VariableRef;
 use CodeClubLuxembourg\Sb3Toolkit\Scratch\ScratchProject;
+use CodeClubLuxembourg\Sb3Toolkit\Validator\ErrorCode;
 use CodeClubLuxembourg\Sb3Toolkit\Validator\ScratchValidator;
+use CodeClubLuxembourg\Sb3Toolkit\Validator\ValidationError;
 
 final class BlocksFactoryTest extends TestCase
 {
@@ -132,6 +134,21 @@ final class BlocksFactoryTest extends TestCase
         self::assertSame('motion_goto_menu', $blocks[$menuId]['opcode']);
         self::assertTrue($blocks[$menuId]['shadow']);
         self::assertSame(['Sprite1', null], $blocks[$menuId]['fields']['TO']);
+    }
+
+    public function testWhenSpriteClickedUsesOpcodeScratchRecognises(): void
+    {
+        // Scratch 3 silently drops scripts whose hat opcode it does not know.
+        self::assertSame('event_whenthisspriteclicked', $this->entry(Events::whenSpriteClicked())['opcode']);
+
+        $project = ScratchProject::create();
+        $project->addSprite('Cat')->addScript(Events::whenSpriteClicked()->then(Looks::say('hi')));
+        $result = ScratchValidator::validate($project);
+        self::assertSame([], array_filter(
+            $result->errors,
+            static fn(ValidationError $e): bool => $e->code === ErrorCode::UNKNOWN_OPCODE,
+        ));
+        self::assertTrue($result->isValid);
     }
 
     public function testNestedReportersValidate(): void
